@@ -1,0 +1,841 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Browser RAG Application with Tool Calling</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+        
+        body {
+            background: linear-gradient(135deg, #1a2a6c, #b21f1f, #fdbb2d);
+            color: #333;
+            min-height: 100vh;
+            padding: 20px;
+        }
+        
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            background: rgba(255, 255, 255, 0.95);
+            border-radius: 15px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
+            overflow: hidden;
+        }
+        
+        header {
+            background: #2c3e50;
+            color: white;
+            padding: 20px;
+            text-align: center;
+        }
+        
+        h1 {
+            font-size: 2.5rem;
+            margin-bottom: 10px;
+        }
+        
+        .subtitle {
+            font-size: 1.2rem;
+            opacity: 0.8;
+        }
+        
+        .main-content {
+            display: flex;
+            flex-wrap: wrap;
+            padding: 20px;
+            gap: 20px;
+        }
+        
+        .section {
+            flex: 1;
+            min-width: 300px;
+            background: white;
+            border-radius: 10px;
+            padding: 20px;
+            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
+        }
+        
+        .section-title {
+            font-size: 1.5rem;
+            margin-bottom: 15px;
+            color: #2c3e50;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        
+        .input-area {
+            min-height: 200px;
+        }
+        
+        textarea {
+            width: 100%;
+            height: 150px;
+            padding: 12px;
+            border: 1px solid #ddd;
+            border-radius: 8px;
+            resize: vertical;
+            font-size: 1rem;
+        }
+        
+        .upload-area {
+            border: 2px dashed #3498db;
+            border-radius: 8px;
+            padding: 20px;
+            text-align: center;
+            margin-top: 15px;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+        
+        .upload-area:hover {
+            background: #f8f9fa;
+            border-color: #2980b9;
+        }
+        
+        .upload-icon {
+            font-size: 2.5rem;
+            color: #3498db;
+            margin-bottom: 10px;
+        }
+        
+        .website-input {
+            display: flex;
+            margin-top: 15px;
+            gap: 10px;
+        }
+        
+        input[type="url"] {
+            flex: 1;
+            padding: 12px;
+            border: 1px solid #ddd;
+            border-radius: 8px;
+            font-size: 1rem;
+        }
+        
+        button {
+            background: #3498db;
+            color: white;
+            border: none;
+            padding: 12px 20px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 1rem;
+            font-weight: 600;
+            transition: background 0.3s;
+        }
+        
+        button:hover {
+            background: #2980b9;
+        }
+        
+        .store-content {
+            min-height: 300px;
+            max-height: 300px;
+            overflow-y: auto;
+        }
+        
+        .store-item {
+            background: #f8f9fa;
+            border-radius: 8px;
+            padding: 12px;
+            margin-bottom: 10px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        
+        .store-item-content {
+            flex: 1;
+            font-size: 0.9rem;
+        }
+        
+        .delete-btn {
+            background: #e74c3c;
+            color: white;
+            border: none;
+            border-radius: 50%;
+            width: 30px;
+            height: 30px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        
+        .delete-btn:hover {
+            background: #c0392b;
+        }
+        
+        .chat-window {
+            min-height: 400px;
+            display: flex;
+            flex-direction: column;
+        }
+        
+        .chat-messages {
+            flex: 1;
+            overflow-y: auto;
+            padding: 15px;
+            background: #f8f9fa;
+            border-radius: 8px;
+            margin-bottom: 15px;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+        
+        .message {
+            padding: 12px;
+            border-radius: 8px;
+            max-width: 80%;
+            word-wrap: break-word;
+        }
+        
+        .user-message {
+            background: #3498db;
+            color: white;
+            align-self: flex-end;
+        }
+        
+        .bot-message {
+            background: #e8f4fc;
+            color: #333;
+            align-self: flex-start;
+        }
+        
+        .think-message {
+            background: #f39c12;
+            color: white;
+            align-self: flex-start;
+            font-style: italic;
+        }
+        
+        .tool-message {
+            background: #9b59b6;
+            color: white;
+            align-self: flex-start;
+        }
+        
+        .observe-message {
+            background: #27ae60;
+            color: white;
+            align-self: flex-start;
+        }
+        
+        .chat-input {
+            display: flex;
+            gap: 10px;
+        }
+        
+        .chat-input input {
+            flex: 1;
+            padding: 12px;
+            border: 1px solid #ddd;
+            border-radius: 8px;
+            font-size: 1rem;
+        }
+        
+        .status {
+            margin-top: 15px;
+            padding: 10px;
+            border-radius: 8px;
+            background: #f8f9fa;
+            text-align: center;
+            font-size: 0.9rem;
+            color: #666;
+        }
+        
+        .progress-bar {
+            height: 5px;
+            background: #3498db;
+            border-radius: 5px;
+            margin-top: 5px;
+            width: 0%;
+            transition: width 0.3s;
+        }
+        
+        .action-buttons {
+            display: flex;
+            gap: 10px;
+            margin-top: 15px;
+        }
+        
+        .secondary-btn {
+            background: #95a5a6;
+        }
+        
+        .secondary-btn:hover {
+            background: #7f8c8d;
+        }
+        
+        .success-btn {
+            background: #2ecc71;
+        }
+        
+        .success-btn:hover {
+            background: #27ae60;
+        }
+        
+        .api-key-container {
+            margin-top: 15px;
+            padding: 15px;
+            background: #f8f9fa;
+            border-radius: 8px;
+        }
+        
+        .api-key-input {
+            width: 100%;
+            padding: 10px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+            margin-top: 5px;
+        }
+        
+        .tool-info {
+            margin-top: 15px;
+            padding: 15px;
+            background: #e8f4fc;
+            border-radius: 8px;
+            font-size: 0.9rem;
+        }
+        
+        @media (max-width: 768px) {
+            .main-content {
+                flex-direction: column;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>Browser RAG Application</h1>
+            <p class="subtitle">Retrieval Augmented Generation with Tool Calling</p>
+        </header>
+        
+        <div class="main-content">
+            <div class="section input-area">
+                <h2 class="section-title"><i class="fas fa-database"></i> Data Source</h2>
+                
+                <div>
+                    <h3>Text Input</h3>
+                    <textarea id="textInput" placeholder="Enter text to index..."></textarea>
+                </div>
+                
+                <div>
+                    <h3>File Upload</h3>
+                    <div class="upload-area" id="uploadArea">
+                        <div class="upload-icon">
+                            <i class="fas fa-cloud-upload-alt"></i>
+                        </div>
+                        <p>Click to upload or drag & drop files here</p>
+                        <p>Supported formats: PDF, CSV, TXT</p>
+                        <input type="file" id="fileUpload" style="display: none;" accept=".pdf,.csv,.txt">
+                    </div>
+                </div>
+                
+                <div>
+                    <h3>Website Input</h3>
+                    <div class="website-input">
+                        <input type="url" id="websiteUrl" placeholder="Enter website URL...">
+                        <button id="fetchWebsite">Fetch</button>
+                    </div>
+                </div>
+                
+                <div class="action-buttons">
+                    <button id="clearInput" class="secondary-btn">Clear</button>
+                    <button id="processData" class="success-btn">Process & Index</button>
+                </div>
+                
+                <div class="api-key-container">
+                    <h3>OpenAI API Key (Simulation)</h3>
+                    <input type="password" id="apiKey" class="api-key-input" placeholder="Enter your API key (simulated for demo)">
+                    <p class="status">Note: This is a simulation. In a real application, this would connect to the OpenAI API.</p>
+                </div>
+            </div>
+            
+            <div class="section">
+                <h2 class="section-title"><i class="fas fa-store"></i> RAG Store</h2>
+                <div class="store-content" id="storeContent">
+                    <p class="status">No data indexed yet. Add data using the input section.</p>
+                </div>
+                <div class="status">
+                    <p>Indexed Items: <span id="itemCount">0</span></p>
+                    <div class="progress-bar" id="indexProgress"></div>
+                </div>
+                <div class="action-buttons">
+                    <button id="clearStore" class="secondary-btn">Clear Store</button>
+                    <button id="exportStore">Export Data</button>
+                </div>
+                
+                <div class="tool-info">
+                    <h3>Available Tools</h3>
+                    <ul>
+                        <li><strong>getWeatherDetailsByCity(cityname)</strong>: Returns weather data</li>
+                        <li><strong>getGithubUserInfoByUsername(username)</strong>: Returns GitHub user info</li>
+                        <li><strong>executeCommand(command)</strong>: Executes commands (simulated)</li>
+                    </ul>
+                </div>
+            </div>
+            
+            <div class="section chat-window">
+                <h2 class="section-title"><i class="fas fa-comments"></i> Chat with Tool Calling</h2>
+                <div class="chat-messages" id="chatMessages">
+                    <div class="message bot-message">
+                        Hello! I'm your RAG assistant with tool calling capabilities. Ask me questions or request actions.
+                    </div>
+                </div>
+                <div class="chat-input">
+                    <input type="text" id="userInput" placeholder="Ask a question or request an action...">
+                    <button id="sendMessage">Send</button>
+                </div>
+                <div class="status">
+                    <p>Try: "What's the weather in London?" or "Get info about GitHub user octocat"</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            // DOM Elements
+            const textInput = document.getElementById('textInput');
+            const fileUpload = document.getElementById('fileUpload');
+            const uploadArea = document.getElementById('uploadArea');
+            const websiteUrl = document.getElementById('websiteUrl');
+            const fetchWebsite = document.getElementById('fetchWebsite');
+            const clearInput = document.getElementById('clearInput');
+            const processData = document.getElementById('processData');
+            const storeContent = document.getElementById('storeContent');
+            const itemCount = document.getElementById('itemCount');
+            const indexProgress = document.getElementById('indexProgress');
+            const clearStore = document.getElementById('clearStore');
+            const exportStore = document.getElementById('exportStore');
+            const chatMessages = document.getElementById('chatMessages');
+            const userInput = document.getElementById('userInput');
+            const sendMessage = document.getElementById('sendMessage');
+            const apiKey = document.getElementById('apiKey');
+            
+            // Store for indexed data
+            let indexedData = [];
+            
+            // Tool implementations (simulated)
+            const TOOL_MAP = {
+                getWeatherDetailsByCity: async function(cityname) {
+                    // Simulate API call
+                    await new Promise(resolve => setTimeout(resolve, 1000));
+                    const weatherConditions = ['Sunny', 'Cloudy', 'Rainy', 'Snowy', 'Windy'];
+                    const randomCondition = weatherConditions[Math.floor(Math.random() * weatherConditions.length)];
+                    const temperature = Math.floor(Math.random() * 30) + 10; // 10-40°C
+                    return `The current weather in ${cityname} is ${randomCondition} with a temperature of ${temperature}°C`;
+                },
+                
+                getGithubUserInfoByUsername: async function(username) {
+                    // Simulate API call
+                    await new Promise(resolve => setTimeout(resolve, 1000));
+                    
+                    // Mock data for demonstration
+                    const mockData = {
+                        login: username,
+                        id: Math.floor(Math.random() * 1000000),
+                        name: username.charAt(0).toUpperCase() + username.slice(1),
+                        location: ['San Francisco', 'New York', 'London', 'Tokyo', 'Berlin'][Math.floor(Math.random() * 5)],
+                        twitter_username: `@${username}`,
+                        public_repos: Math.floor(Math.random() * 100),
+                        public_gists: Math.floor(Math.random() * 50),
+                        user_view_type: 'public',
+                        followers: Math.floor(Math.random() * 1000),
+                        following: Math.floor(Math.random() * 500)
+                    };
+                    
+                    return JSON.stringify(mockData, null, 2);
+                },
+                
+                executeCommand: async function(command) {
+                    // Simulate command execution
+                    await new Promise(resolve => setTimeout(resolve, 1000));
+                    
+                    // Mock responses for common commands
+                    const commandResponses = {
+                        'ls': 'file1.txt\nfile2.txt\nfolder1\n',
+                        'pwd': '/home/user/projects\n',
+                        'git status': 'On branch main\nYour branch is up to date with origin/main.\n\nChanges not staged for commit:\n  modified:   index.html\n',
+                        'git log --oneline': 'a1b2c3d Update README\nf4e5d6c Add new feature\nb7c8d9e Initial commit\n',
+                        'date': new Date().toString()
+                    };
+                    
+                    return commandResponses[command] || `Command '${command}' executed successfully`;
+                }
+            };
+            
+            // Event Listeners
+            uploadArea.addEventListener('click', () => fileUpload.click());
+            
+            uploadArea.addEventListener('dragover', (e) => {
+                e.preventDefault();
+                uploadArea.style.background = '#f0f7ff';
+            });
+            
+            uploadArea.addEventListener('dragleave', () => {
+                uploadArea.style.background = '';
+            });
+            
+            uploadArea.addEventListener('drop', (e) => {
+                e.preventDefault();
+                uploadArea.style.background = '';
+                if (e.dataTransfer.files.length) {
+                    fileUpload.files = e.dataTransfer.files;
+                    simulateProcessing();
+                }
+            });
+            
+            fileUpload.addEventListener('change', () => {
+                if (fileUpload.files.length) {
+                    simulateProcessing();
+                }
+            });
+            
+            fetchWebsite.addEventListener('click', () => {
+                if (websiteUrl.value) {
+                    simulateProcessing();
+                } else {
+                    alert('Please enter a website URL');
+                }
+            });
+            
+            clearInput.addEventListener('click', () => {
+                textInput.value = '';
+                fileUpload.value = '';
+                websiteUrl.value = '';
+            });
+            
+            processData.addEventListener('click', () => {
+                if (textInput.value || fileUpload.files.length || websiteUrl.value) {
+                    simulateProcessing();
+                } else {
+                    alert('Please add some data to process');
+                }
+            });
+            
+            clearStore.addEventListener('click', () => {
+                indexedData = [];
+                updateStoreDisplay();
+            });
+            
+            exportStore.addEventListener('click', () => {
+                if (indexedData.length) {
+                    const dataStr = JSON.stringify(indexedData, null, 2);
+                    const dataUri = 'data:application/json;charset=utf-8,'+ encodeURIComponent(dataStr);
+                    const exportFileDefaultName = 'rag-data.json';
+                    
+                    const linkElement = document.createElement('a');
+                    linkElement.setAttribute('href', dataUri);
+                    linkElement.setAttribute('download', exportFileDefaultName);
+                    linkElement.click();
+                } else {
+                    alert('No data to export');
+                }
+            });
+            
+            sendMessage.addEventListener('click', processQuery);
+            userInput.addEventListener('keypress', (e) => {
+                if (e.key === 'Enter') processQuery();
+            });
+            
+            // Functions
+            function simulateProcessing() {
+                const sources = [];
+                if (textInput.value) sources.push('text input');
+                if (fileUpload.files.length) sources.push('file upload');
+                if (websiteUrl.value) sources.push('website');
+                
+                const status = `Processing ${sources.join(', ')}...`;
+                addMessage(status, 'bot');
+                
+                // Simulate processing delay
+                let progress = 0;
+                const interval = setInterval(() => {
+                    progress += 5;
+                    indexProgress.style.width = `${progress}%`;
+                    
+                    if (progress >= 100) {
+                        clearInterval(interval);
+                        indexData();
+                        addMessage('Data processed and indexed successfully!', 'bot');
+                    }
+                }, 100);
+            }
+            
+            function indexData() {
+                // Simulate data extraction and chunking
+                let newData = [];
+                
+                if (textInput.value) {
+                    const chunks = chunkText(textInput.value, 200);
+                    chunks.forEach((chunk, i) => {
+                        newData.push({
+                            id: `text-${Date.now()}-${i}`,
+                            content: chunk,
+                            source: 'Text Input',
+                            timestamp: new Date().toISOString()
+                        });
+                    });
+                }
+                
+                if (fileUpload.files.length) {
+                    const file = fileUpload.files[0];
+                    const fileName = file.name;
+                    const fileType = fileName.split('.').pop().toUpperCase();
+                    
+                    // Simulate file content extraction
+                    const simulatedContent = `This is simulated content from the ${fileType} file "${fileName}". In a real application, this would be extracted using appropriate libraries.`;
+                    
+                    const chunks = chunkText(simulatedContent, 200);
+                    chunks.forEach((chunk, i) => {
+                        newData.push({
+                            id: `file-${Date.now()}-${i}`,
+                            content: chunk,
+                            source: `File: ${fileName}`,
+                            timestamp: new Date().toISOString()
+                        });
+                    });
+                }
+                
+                if (websiteUrl.value) {
+                    const url = websiteUrl.value;
+                    
+                    // Simulate website content extraction
+                    const simulatedContent = `This is simulated content from the website ${url}. In a real application, this would be fetched and extracted using appropriate libraries and APIs.`;
+                    
+                    const chunks = chunkText(simulatedContent, 200);
+                    chunks.forEach((chunk, i) => {
+                        newData.push({
+                            id: `web-${Date.now()}-${i}`,
+                            content: chunk,
+                            source: `Website: ${url}`,
+                            timestamp: new Date().toISOString()
+                        });
+                    });
+                }
+                
+                // Add to indexed data
+                indexedData = [...indexedData, ...newData];
+                updateStoreDisplay();
+            }
+            
+            function chunkText(text, chunkSize) {
+                const chunks = [];
+                for (let i = 0; i < text.length; i += chunkSize) {
+                    chunks.push(text.substring(i, i + chunkSize));
+                }
+                return chunks;
+            }
+            
+            function updateStoreDisplay() {
+                storeContent.innerHTML = '';
+                itemCount.textContent = indexedData.length;
+                
+                if (indexedData.length === 0) {
+                    storeContent.innerHTML = '<p class="status">No data indexed yet. Add data using the input section.</p>';
+                    return;
+                }
+                
+                // Show most recent items first
+                const displayItems = [...indexedData].reverse().slice(0, 5);
+                
+                displayItems.forEach(item => {
+                    const itemEl = document.createElement('div');
+                    itemEl.className = 'store-item';
+                    
+                    const contentEl = document.createElement('div');
+                    contentEl.className = 'store-item-content';
+                    contentEl.innerHTML = `
+                        <strong>${item.source}</strong>
+                        <p>${item.content.substring(0, 100)}${item.content.length > 100 ? '...' : ''}</p>
+                    `;
+                    
+                    const deleteBtn = document.createElement('button');
+                    deleteBtn.className = 'delete-btn';
+                    deleteBtn.innerHTML = '<i class="fas fa-times"></i>';
+                    deleteBtn.addEventListener('click', () => {
+                        indexedData = indexedData.filter(i => i.id !== item.id);
+                        updateStoreDisplay();
+                    });
+                    
+                    itemEl.appendChild(contentEl);
+                    itemEl.appendChild(deleteBtn);
+                    storeContent.appendChild(itemEl);
+                });
+                
+                if (indexedData.length > 5) {
+                    const moreEl = document.createElement('p');
+                    moreEl.className = 'status';
+                    moreEl.textContent = `...and ${indexedData.length - 5} more items`;
+                    storeContent.appendChild(moreEl);
+                }
+            }
+            
+            async function processQuery() {
+                const query = userInput.value.trim();
+                if (!query) return;
+                
+                // Add user message to chat
+                addMessage(query, 'user');
+                userInput.value = '';
+                
+                // Check if API key is provided (simulated)
+                if (!apiKey.value) {
+                    addMessage("Please provide an OpenAI API key to use this feature. (This is simulated for the demo)", 'bot');
+                    return;
+                }
+                
+                // Start the tool calling process
+                await simulateToolCalling(query);
+            }
+            
+            async function simulateToolCalling(query) {
+                // Simulate the START step
+                addMessage("Starting to process your request...", 'think');
+                await delay(800);
+                
+                // Simulate the THINK steps
+                addMessage("Analyzing your request to determine the best approach...", 'think');
+                await delay(1000);
+                
+                // Determine which tool to use based on the query
+                let toolToCall = null;
+                let toolInput = "";
+                
+                if (query.toLowerCase().includes("weather") || query.toLowerCase().includes("temperature")) {
+                    addMessage("I see you're asking about weather. I should use the getWeatherDetailsByCity tool.", 'think');
+                    await delay(800);
+                    
+                    // Extract city name (simple simulation)
+                    const cityMatch = query.match(/(?:in|of|for)\s+([a-zA-Z]+(?:\s+[a-zA-Z]+)*)/i);
+                    const cityName = cityMatch ? cityMatch[1] : "London";
+                    
+                    toolToCall = "getWeatherDetailsByCity";
+                    toolInput = cityName;
+                } 
+                else if (query.toLowerCase().includes("github") || query.toLowerCase().includes("user")) {
+                    addMessage("This seems to be a request for GitHub user information. I'll use the getGithubUserInfoByUsername tool.", 'think');
+                    await delay(800);
+                    
+                    // Extract username (simple simulation)
+                    const userMatch = query.match(/(?:user|username)\s+([a-zA-Z0-9_-]+)/i) || query.match(/([a-zA-Z0-9_-]+)(?=\'s|$)/i);
+                    const userName = userMatch ? userMatch[1] : "octocat";
+                    
+                    toolToCall = "getGithubUserInfoByUsername";
+                    toolInput = userName;
+                }
+                else if (query.toLowerCase().includes("command") || query.toLowerCase().includes("execute") || 
+                         query.toLowerCase().includes("git") || query.toLowerCase().includes("ls") || 
+                         query.toLowerCase().includes("pwd") || query.toLowerCase().includes("run")) {
+                    addMessage("You're asking to execute a command. I'll use the executeCommand tool.", 'think');
+                    await delay(800);
+                    
+                    // Extract command (simple simulation)
+                    const commandMatch = query.match(/(git\s+\w+|ls|pwd|date)/i) || [query];
+                    const command = commandMatch[0];
+                    
+                    toolToCall = "executeCommand";
+                    toolInput = command;
+                }
+                else {
+                    // Default to RAG response
+                    addMessage("This seems to be a general question. I'll search my indexed knowledge.", 'think');
+                    await delay(800);
+                    
+                    // Use RAG approach
+                    const relevantChunks = indexedData
+                        .filter(item => item.content.toLowerCase().includes(query.toLowerCase()))
+                        .slice(0, 3);
+                    
+                    if (relevantChunks.length) {
+                        const response = generateResponse(query, relevantChunks);
+                        addMessage(response, 'bot');
+                    } else {
+                        addMessage("I couldn't find any relevant information in the indexed data to answer your question.", 'bot');
+                    }
+                    return;
+                }
+                
+                // Simulate TOOL call
+                addMessage(`Calling tool: ${toolToCall} with input: ${toolInput}`, 'tool');
+                await delay(1000);
+                
+                // Call the tool
+                try {
+                    const toolResponse = await TOOL_MAP[toolToCall](toolInput);
+                    
+                    // Simulate OBSERVE step
+                    addMessage(`Tool response: ${toolResponse}`, 'observe');
+                    await delay(800);
+                    
+                    // Simulate final THINK step
+                    addMessage("I've received the tool response. Now I'll formulate the final answer.", 'think');
+                    await delay(800);
+                    
+                    // Simulate OUTPUT step
+                    let finalResponse = "";
+                    
+                    if (toolToCall === "getWeatherDetailsByCity") {
+                        finalResponse = `Based on the weather data I retrieved, ${toolResponse}. You might want to dress accordingly!`;
+                    } 
+                    else if (toolToCall === "getGithubUserInfoByUsername") {
+                        const userData = JSON.parse(toolResponse);
+                        finalResponse = `Here's the information for GitHub user ${userData.login}: ${userData.name} from ${userData.location} has ${userData.public_repos} public repositories and ${userData.followers} followers.`;
+                    }
+                    else if (toolToCall === "executeCommand") {
+                        finalResponse = `I executed the command "${toolInput}" and received this output:\n${toolResponse}`;
+                    }
+                    
+                    addMessage(finalResponse, 'bot');
+                } catch (error) {
+                    addMessage("Sorry, I encountered an error while processing your request. Please try again.", 'bot');
+                    console.error(error);
+                }
+            }
+            
+            function generateResponse(query, chunks) {
+                // Simulate response generation based on retrieved chunks
+                const responses = [
+                    `Based on the information I have, ${chunks[0].content} This relates to your question about "${query}".`,
+                    `I found some relevant information: ${chunks.map(c => c.content).join(' ')} This should help with your query: "${query}".`,
+                    `From what I've indexed: ${chunks[0].content} Additional context: ${chunks.length > 1 ? chunks[1].content : ''} This addresses your question about "${query}".`
+                ];
+                
+                return responses[Math.floor(Math.random() * responses.length)];
+            }
+            
+            function addMessage(text, type) {
+                const messageEl = document.createElement('div');
+                messageEl.className = `message ${type}-message`;
+                messageEl.textContent = text;
+                
+                chatMessages.appendChild(messageEl);
+                chatMessages.scrollTop = chatMessages.scrollHeight;
+                
+                return messageEl;
+            }
+            
+            function delay(ms) {
+                return new Promise(resolve => setTimeout(resolve, ms));
+            }
+            
+            // Initialize with some sample data
+            textInput.value = "Retrieval-Augmented Generation (RAG) is a technique that enhances large language models by retrieving relevant information from a knowledge source before generating a response. This approach combines the benefits of parametric knowledge (learned during training) and non-parametric knowledge (from external sources). RAG helps models provide more accurate, up-to-date, and contextually relevant answers while reducing hallucinations.";
+            websiteUrl.value = "https://example.com/artificial-intelligence";
+            apiKey.value = "sk-simulated-api-key-for-demo";
+        });
+    </script>
+</body>
+</html>
